@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Explorer Navigation V7 (Tighter Spacing)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111111; /* Darkest background */
+            color: #FFFFFF; /* White text */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .main-container {
+            display: flex;
+            width: 95%;
+            max-width: 1200px;
+            height: 85vh;
+            min-height: 600px;
+            background-color: #222222; /* Darker background for the main card */
+            border-radius: 12px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5); /* Stronger shadow for contrast */
+            overflow: hidden;
+        }
+        .tree-pane {
+            width: 300px;
+            background-color: #111111; /* Even darker for sidebar */
+            border-right: 1px solid #555555; /* Gray border */
+            padding: 0.75rem;
+            overflow-y: auto; /* Allow scrolling if content overflows */
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .detail-pane {
+            flex-grow: 1;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Explorer Section Header (for search/expand/collapse all) */
+        .explorer-controls {
+            flex-shrink: 0;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #555555;
+        }
+        .explorer-controls .search-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background-color: #333333;
+            border: 1px solid #555555;
+            border-radius: 6px;
+            color: #FFFFFF;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        .explorer-controls .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .explorer-controls .action-button {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            background-color: #444444;
+            color: #FFFFFF;
+            border-radius: 6px;
+            border: 1px solid #666666;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .explorer-controls .action-button:hover {
+            background-color: #555555;
+            border-color: #777777;
+        }
+
+        /* Quick Access Sections (Recent, Favorites) */
+        .quick-access-section {
+            margin-bottom: 0.75rem;
+            border-bottom: 1px solid #555555;
+            padding-bottom: 0.5rem;
+        }
+        .quick-access-header {
+            display: flex;
+            align-items: center;
+            padding: 0.3rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #CCCCCC;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .quick-access-header:hover {
+            background-color: #333333;
+        }
+        .quick-access-header .icon {
+            margin-right: 0.5rem;
+            color: #999999;
+        }
+        .quick-access-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding-left: 1.5rem;
+        }
+        .quick-access-section.expanded .quick-access-list {
+            max-height: 200px; /* Adjust as needed for content */
+            transition: max-height 0.3s ease-in;
+        }
+        .quick-access-item {
+            /* TIGHTER SPACING */
+            padding: 0.2rem 0.5rem; /* Reduced vertical padding */
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.8rem;
+            margin-bottom: 0.05rem; /* Reduced margin */
+            display: flex;
+            align-items: center;
+        }
+        .quick-access-item:hover:not(.selected) {
+            background-color: #333333;
+        }
+        .quick-access-item.selected {
+            background-color: #555555;
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+        .quick-access-item .icon {
+            margin-right: 0.3rem;
+            color: #999999;
+            font-size: 0.9rem;
+        }
+
+        /* New Category Sections (Events, Cars, Drivers) */
+        .category-section {
+            margin-bottom: 0.75rem;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            padding: 0.3rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #CCCCCC;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .category-header:hover {
+            background-color: #333333;
+        }
+        .category-header .toggle-icon {
+            margin-right: 0.5rem;
+            color: #999999;
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+        .category-header .category-icon {
+            margin-right: 0.5rem;
+            color: #999999;
+            font-size: 0.9rem;
+        }
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding-left: 0.75rem; /* Indent content within categories */
+        }
+        .category-section.expanded .category-content {
+            max-height: 500px; /* Large enough to show all content, adjust as needed */
+            transition: max-height 0.3s ease-in;
+        }
+        /* Specific style for flat lists within categories */
+        .flat-list-item {
+            /* TIGHTER SPACING */
+            padding: 0.2rem 0.5rem; /* Reduced vertical padding */
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.8rem;
+            margin-bottom: 0.05rem; /* Reduced margin */
+            display: flex;
+            align-items: center;
+        }
+        .flat-list-item:hover:not(.selected) {
+            background-color: #333333;
+        }
+        .flat-list-item.selected {
+            background-color: #555555;
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+        .flat-list-item .icon {
+            margin-right: 0.3rem;
+            color: #999999;
+            font-size: 0.9rem;
+        }
+
+
+        /* Tree View Specific Styles (now nested inside .category-content) */
+        .tree-view ul {
+            list-style: none;
+            /* TIGHTER SPACING */
+            padding-left: 0.75rem; /* Tighter indent for nested levels */
+            margin: 0;
+        }
+        .tree-view li {
+            /* TIGHTER SPACING */
+            margin-bottom: 0.05rem; /* Reduced margin */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tree-node {
+            /* TIGHTER SPACING */
+            padding: 0.2rem 0.5rem; /* Reduced vertical padding */
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+        }
+        .tree-node:hover:not(.selected) {
+            background-color: #333333;
+            color: #CCCCCC;
+        }
+        .tree-node.selected {
+            background-color: #555555;
+            color: #FFFFFF;
+            font-weight: 600;
+        }
+        .tree-toggle {
+            width: 1rem;
+            height: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            margin-right: 0.3rem;
+            font-weight: bold;
+            color: #999999;
+            transition: color 0.2s;
+            font-size: 0.7rem;
+        }
+        .tree-toggle:hover {
+            color: #CCCCCC;
+        }
+        .tree-icon {
+            margin-right: 0.3rem;
+            color: #999999;
+            font-size: 0.9rem;
+        }
+        .node-label {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .children {
+            display: none;
+        }
+        .children.expanded {
+            display: block;
+        }
+
+        /* Detail Pane Tabs */
+        .tabs-container {
+            display: flex;
+            border-bottom: 1px solid #555555;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+        .tab-button {
+            padding: 0.6rem 1rem;
+            background-color: transparent;
+            border: none;
+            color: #CCCCCC;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-bottom-color 0.2s;
+        }
+        .tab-button:hover {
+            color: #FFFFFF;
+        }
+        .tab-button.active {
+            color: #FFFFFF;
+            border-bottom-color: #FFFFFF;
+            font-weight: 600;
+        }
+
+        /* Detail Content Area */
+        .detail-content {
+            flex-grow: 1;
+            background-color: #222222;
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-y: auto;
+            color: #CCCCCC;
+            font-size: 0.85rem;
+        }
+        .detail-list-item {
+            padding: 0.3rem 0;
+            border-bottom: 1px dashed #444444;
+            font-size: 0.8rem;
+        }
+        .detail-list-item:last-child {
+            border-bottom: none;
+        }
+        .placeholder-text {
+            text-align: center;
+            color: #999999;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+        }
+        .detail-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 0.75rem;
+        }
+        /* Specific button styling for Edit tab */
+        .detail-content button {
+            background-color: #444444;
+            color: #FFFFFF;
+            border: 1px solid #666666;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .detail-content button:hover {
+            background-color: #555555;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Left Pane: Explorer (Quick Access, Search, Actions, Categories) -->
+        <div class="tree-pane">
+            <!-- Quick Access Sections -->
+            <div id="recent-section" class="quick-access-section">
+                <div class="quick-access-header" data-target="recent-list">
+                    <span class="icon">🕒</span> Recent
+                </div>
+                <div id="recent-list" class="quick-access-list">
+                    <!-- Recent items will be rendered here -->
+                </div>
+            </div>
+
+            <div id="favorites-section" class="quick-access-section">
+                <div class="quick-access-header" data-target="favorites-list">
+                    <span class="icon">★</span> Favorites
+                </div>
+                <div id="favorites-list" class="quick-access-list">
+                    <!-- Favorites items will be rendered here -->
+                </div>
+            </div>
+
+            <div class="explorer-controls">
+                <h2 class="section-header text-lg mb-2 text-FFFFFF">Explorer</h2>
+                <input type="text" id="search-input" class="search-input" placeholder="Search...">
+                <div class="action-buttons">
+                    <button id="expand-all-tree-btn" class="action-button">Expand All</button>
+                    <button id="collapse-all-tree-btn" class="action-button">Collapse All</button>
+                </div>
+            </div>
+
+            <!-- New Category Sections -->
+            <div id="events-category" class="category-section">
+                <div class="category-header" data-category="events">
+                    <span class="toggle-icon"></span>
+                    <span class="category-icon">📁</span> Events
+                </div>
+                <div id="events-content" class="category-content">
+                    <ul class="tree-view">
+                        <!-- Events tree will be rendered here by JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <div id="cars-category" class="category-section">
+                <div class="category-header" data-category="cars">
+                    <span class="toggle-icon"></span>
+                    <span class="category-icon">🚗</span> Cars
+                </div>
+                <div id="cars-content" class="category-content">
+                    <ul class="flat-list">
+                        <!-- All Cars list will be rendered here by JS -->
+                    </ul>
+                </div>
+            </div>
+
+            <div id="drivers-category" class="category-section">
+                <div class="category-header" data-category="drivers">
+                    <span class="toggle-icon"></span>
+                    <span class="category-icon">👤</span> Drivers
+                </div>
+                <div id="drivers-content" class="category-content">
+                    <ul class="flat-list">
+                        <!-- All Drivers list will be rendered here by JS -->
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Pane: Detail View (Tabs, Content) -->
+        <div class="detail-pane">
+            <!-- Breadcrumbs -->
+            <nav class="text-xs mb-3">
+                <span id="breadcrumbs" class="flex items-center flex-wrap">
+                    <span class="text-999999">Home</span>
+                </span>
+            </nav>
+
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <button id="view-tab-btn" class="tab-button active">View</button>
+                <button id="edit-tab-btn" class="tab-button">Edit</button>
+                <button id="analyze-tab-btn" class="tab-button">Analyze</button>
+            </div>
+
+            <!-- Detail Content Area -->
+            <div id="detail-content" class="detail-content">
+                <p class="placeholder-text">Select an item from the explorer to view its details.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Dummy Data ---
+        const dummyData = {
+            events: [
+                { id: 'e1', name: 'Daytona 500 (2025)', type: 'event' },
+                { id: 'e2', name: 'Monaco Grand Prix (2024)', type: 'event' },
+                { id: 'e3', name: 'Le Mans 24h (2025)', type: 'event' },
+                { id: 'e4', name: 'Nürburgring 24h (2025)', type: 'event' },
+            ],
+            sessions: {
+                'e1': [
+                    { id: 's1-1', name: 'Practice 1', type: 'session' },
+                    { id: 's1-2', name: 'Qualifying', type: 'session' },
+                    { id: 's1-3', name: 'Race', type: 'session' },
+                ],
+                'e2': [
+                    { id: 's2-1', name: 'Free Practice', type: 'session' },
+                    { id: 's2-2', name: 'Qualifying', type: 'session' },
+                ],
+                'e3': [
+                    { id: 's3-1', name: 'Test Session', type: 'session' },
+                    { id: 's3-2', name: 'Race', type: 'session' },
+                ],
+                'e4': [
+                    { id: 's4-1', name: 'Warm-up', type: 'session' },
+                    { id: 's4-2', name: 'Race', type: 'session' },
+                ],
+            },
+            participants: { // Combined cars and drivers for easier iteration under sessions
+                's1-1': [
+                    { id: 'c1-1-1', name: 'Car #23 - Red Bull', type: 'car' },
+                    { id: 'd1-1-1', name: 'Max Verstappen', type: 'driver' },
+                    { id: 'c1-1-2', name: 'Car #44 - Mercedes', type: 'car' },
+                    { id: 'd1-1-2', name: 'Lewis Hamilton', type: 'driver' },
+                ],
+                's1-2': [
+                    { id: 'c1-2-1', name: 'Car #23 - Red Bull', type: 'car' },
+                    { id: 'd1-2-1', name: 'Max Verstappen', type: 'driver' },
+                ],
+                's1-3': [
+                    { id: 'c1-3-1', name: 'Car #23 - Red Bull', type: 'car' },
+                    { id: 'd1-3-1', name: 'Max Verstappen', type: 'driver' },
+                ],
+                's2-1': [
+                    { id: 'c2-1-1', name: 'Car #1 - Ferrari', type: 'car' },
+                    { id: 'd2-1-1', name: 'Charles Leclerc', type: 'driver' },
+                ],
+                's2-2': [
+                    { id: 'c2-2-1', name: 'Car #1 - Ferrari', type: 'car' },
+                    { id: 'd2-2-1', name: 'Charles Leclerc', type: 'driver' },
+                ],
+                's3-1': [
+                    { id: 'c3-1-1', name: 'Car #7 - Toyota', type: 'car' },
+                    { id: 'd3-1-1', name: 'Kamui Kobayashi', type: 'driver' },
+                ],
+                 's3-2': [
+                    { id: 'c3-2-1', name: 'Car #7 - Toyota', type: 'car' },
+                    { id: 'd3-2-1', name: 'Kamui Kobayashi', type: 'driver' },
+                ],
+                's4-1': [
+                    { id: 'c4-1-1', name: 'Car #10 - Audi', type: 'car' },
+                    { id: 'd4-1-1', name: 'René Rast', type: 'driver' },
+                ],
+                's4-2': [
+                    { id: 'c4-2-1', name: 'Car #10 - Audi', type: 'car' },
+                    { id: 'd4-2-1', name: 'René Rast', type: 'driver' },
+                ],
+            },
+            laps: {
+                'c1-1-1': [{ id: 'l1-1-1-1', number: 1, time: '1:30.500' }, { id: 'l1-1-1-2', number: 2, time: '1:29.800' }],
+                'd1-1-1': [{ id: 'l1-1-1-1', number: 1, time: '1:30.500' }, { id: 'l1-1-1-2', number: 2, time: '1:29.800' }],
+                'c1-1-2': [{ id: 'l1-1-2-1', number: 1, time: '1:31.200' }, { id: 'l1-1-2-2', number: 2, time: '1:30.100' }],
+                'd1-1-2': [{ id: 'l1-1-2-1', number: 1, time: '1:31.200' }, { id: 'l1-1-2-2', number: 2, time: '1:30.100' }],
+                'c2-1-1': [{ id: 'l2-1-1-1', number: 1, time: '1:25.123' }, { id: 'l2-1-1-2', number: 2, time: '1:24.987' }],
+                'd2-1-1': [{ id: 'l2-1-1-1', number: 1, time: '1:25.123' }, { id: 'l2-1-1-2', number: 2, time: '1:24.987' }],
+                'c3-1-1': [{ id: 'l3-1-1-1', number: 1, time: '1:40.000' }, { id: 'l3-1-1-2', number: 2, time: '1:39.500' }],
+                'd3-1-1': [{ id: 'l3-1-1-1', number: 1, time: '1:40.000' }, { id: 'l3-1-1-2', number: 2, time: '1:39.500' }],
+                'c4-1-1': [{ id: 'l4-1-1-1', number: 1, time: '1:50.000' }, { id: 'l4-1-1-2', number: 2, time: '1:49.000' }],
+                'd4-1-1': [{ id: 'l4-1-1-1', number: 1, time: '1:50.000' }, { id: 'l4-1-1-2', number: 2, time: '1:49.000' }],
+            }
+        };
+
+        // --- Dummy Quick Access Data (referencing existing items by ID) ---
+        dummyData.recentItems = [
+            { id: 's1-3', name: 'Daytona Race', type: 'session' },
+            { id: 'd2-1-1', name: 'Charles Leclerc (Monaco FP)', type: 'driver' },
+            { id: 'e3', name: 'Le Mans 24h (2025)', type: 'event' },
+        ];
+        dummyData.favoriteItems = [
+            { id: 'e1', name: 'Daytona 500 (2025)', type: 'event' },
+            { id: 'c1-1-1', name: 'Car #23 (Daytona P1)', type: 'car' },
+        ];
+
+        // --- Mock Data for All Cars and All Drivers ---
+        dummyData.allCars = [
+            { id: 'car-a1', name: 'Porsche 911 GT3 R (2023)', type: 'car' },
+            { id: 'car-a2', name: 'Ferrari 488 GT3 Evo (2020)', type: 'car' },
+            { id: 'car-a3', name: 'Mercedes-AMG GT3 (2020)', type: 'car' },
+            { id: 'car-a4', name: 'Audi R8 LMS GT3 Evo II (2022)', type: 'car' },
+            { id: 'car-a5', name: 'BMW M4 GT3 (2022)', type: 'car' },
+            { id: 'car-a6', name: 'Lamborghini Huracán GT3 Evo2 (2023)', type: 'car' },
+            { id: 'car-a7', name: 'McLaren 720S GT3 Evo (2023)', type: 'car' },
+            { id: 'car-a8', name: 'Aston Martin Vantage AMR GT3 (2024)', type: 'car' },
+            { id: 'car-a9', name: 'Ford Mustang GT3 (2024)', type: 'car' },
+            { id: 'car-a10', name: 'Chevrolet Corvette C8.R GT3 (2024)', type: 'car' },
+            { id: 'car-a11', name: 'Nissan GT-R Nismo GT3 (2020)', type: 'car' },
+            { id: 'car-a12', name: 'Honda NSX GT3 Evo (2020)', type: 'car' },
+            { id: 'car-a13', name: 'Toyota GR Supra GT4 (2023)', type: 'car' },
+            { id: 'car-a14', name: 'Alpine A110 GT4 (2023)', type: 'car' },
+            { id: 'car-a15', name: 'Ginetta G56 GT4 (2023)', type: 'car' },
+        ];
+
+        dummyData.allDrivers = [
+            { id: 'driver-b1', name: 'Lewis Hamilton', type: 'driver' },
+            { id: 'driver-b2', name: 'Max Verstappen', type: 'driver' },
+            { id: 'driver-b3', name: 'Charles Leclerc', type: 'driver' },
+            { id: 'driver-b4', name: 'Fernando Alonso', type: 'driver' },
+            { id: 'driver-b5', name: 'Lando Norris', type: 'driver' },
+            { id: 'driver-b6', name: 'Sergio Perez', type: 'driver' },
+            { id: 'driver-b7', name: 'George Russell', type: 'driver' },
+            { id: 'driver-b8', name: 'Carlos Sainz Jr.', type: 'driver' },
+            { id: 'driver-b9', name: 'Daniel Ricciardo', type: 'driver' },
+            { id: 'driver-b10', name: 'Valtteri Bottas', type: 'driver' },
+            { id: 'driver-b11', name: 'Sebastian Vettel', type: 'driver' },
+            { id: 'driver-b12', name: 'Kimi Räikkönen', type: 'driver' },
+            { id: 'driver-b13', name: 'Jenson Button', type: 'driver' },
+            { id: 'driver-b14', name: 'Nico Rosberg', type: 'driver' },
+            { id: 'driver-b15', name: 'Michael Schumacher', type: 'driver' },
+            { id: 'driver-b16', name: 'Ayrton Senna', type: 'driver' },
+            { id: 'driver-b17', name: 'Juan Manuel Fangio', type: 'driver' },
+            { id: 'driver-b18', name: 'Jim Clark', type: 'driver' },
+            { id: 'driver-b19', name: 'Jackie Stewart', type: 'driver' },
+            { id: 'driver-b20', name: 'Alain Prost', type: 'driver' },
+        ];
+
+
+        // --- State Variables ---
+        let selectedNode = null; // Stores the currently selected item (event, session, car, or driver)
+        const expandedNodes = new Set(); // Stores IDs of expanded nodes in the main tree (for Events category)
+        const expandedCategories = new Set(['events']); // Stores IDs of expanded top-level categories
+        let activeTab = 'view'; // 'view', 'edit', 'analyze'
+        let searchText = '';
+
+        // --- DOM Elements ---
+        const treeViewEl = document.querySelector('#events-content ul'); // Target UL inside events category
+        const carsListEl = document.querySelector('#cars-content ul');
+        const driversListEl = document.querySelector('#drivers-content ul');
+
+        const breadcrumbsEl = document.getElementById('breadcrumbs');
+        const detailContentEl = document.getElementById('detail-content');
+        const searchInput = document.getElementById('search-input');
+        const expandAllTreeBtn = document.getElementById('expand-all-tree-btn');
+        const collapseAllTreeBtn = document.getElementById('collapse-all-tree-btn');
+        const viewTabBtn = document.getElementById('view-tab-btn');
+        const editTabBtn = document.getElementById('edit-tab-btn');
+        const analyzeTabBtn = document.getElementById('analyze-tab-btn');
+
+        const recentSection = document.getElementById('recent-section');
+        const recentList = document.getElementById('recent-list');
+        const favoritesSection = document.getElementById('favorites-section');
+        const favoritesList = document.getElementById('favorites-list');
+
+        const eventsCategorySection = document.getElementById('events-category');
+        const carsCategorySection = document.getElementById('cars-category');
+        const driversCategorySection = document.getElementById('drivers-category');
+
+
+        // --- Helper to find any node by ID and Type ---
+        function findNodeById(id, type = null) {
+            // Check events
+            let node = dummyData.events.find(e => e.id === id);
+            if (node && (type === null || node.type === type)) return node;
+
+            // Check sessions
+            for (const eventId in dummyData.sessions) {
+                node = dummyData.sessions[eventId].find(s => s.id === id);
+                if (node && (type === null || node.type === type)) return node;
+            }
+
+            // Check participants (cars/drivers) within sessions
+            for (const sessionId in dummyData.participants) {
+                node = dummyData.participants[sessionId].find(p => p.id === id);
+                if (node && (type === null || node.type === type)) return node;
+            }
+
+            // Check allCars (flat list)
+            node = dummyData.allCars.find(c => c.id === id);
+            if (node && (type === null || node.type === type)) return node;
+
+            // Check allDrivers (flat list)
+            node = dummyData.allDrivers.find(d => d.id === id);
+            if (node && (type === null || node.type === type)) return node;
+
+            return null;
+        }
+
+        // --- Render Functions ---
+
+        function renderQuickAccessItems(listElement, items) {
+            listElement.innerHTML = '';
+            items.forEach(itemRef => {
+                const actualItem = findNodeById(itemRef.id, itemRef.type); // Get full item data
+                if (actualItem) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `quick-access-item ${selectedNode && selectedNode.id === actualItem.id ? 'selected' : ''}`;
+                    itemDiv.onclick = () => selectNode(actualItem);
+                    itemDiv.dataset.itemId = actualItem.id; // Store ID for selection update
+
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'icon';
+                    // Use specific icons for quick access items based on their type
+                    if (actualItem.type === 'event') iconSpan.textContent = '📅';
+                    else if (actualItem.type === 'session') iconSpan.textContent = '⏱️';
+                    else if (actualItem.type === 'car') iconSpan.textContent = '🚗';
+                    else if (actualItem.type === 'driver') iconSpan.textContent = '👤';
+                    itemDiv.appendChild(iconSpan);
+
+                    const labelSpan = document.createElement('span');
+                    labelSpan.textContent = itemRef.name; // Use the name provided in recent/favorites data
+                    itemDiv.appendChild(labelSpan);
+
+                    listElement.appendChild(itemDiv);
+                }
+            });
+        }
+
+        function renderEventsTree() {
+            treeViewEl.innerHTML = '';
+            const filteredEvents = dummyData.events.filter(event => matchesSearch(event));
+
+            filteredEvents.forEach(event => {
+                const eventNode = createNodeElement(event, 0);
+                treeViewEl.appendChild(eventNode);
+
+                if (expandedNodes.has(event.id) || hasMatchingChildren(event, searchText)) {
+                    const sessions = dummyData.sessions[event.id] || [];
+                    const filteredSessions = sessions.filter(session => matchesSearch(session));
+                    if (filteredSessions.length > 0) {
+                        const childrenUl = document.createElement('ul');
+                        childrenUl.className = 'children expanded';
+                        filteredSessions.forEach(session => {
+                            const sessionNode = createNodeElement(session, 1);
+                            childrenUl.appendChild(sessionNode);
+
+                            if (expandedNodes.has(session.id) || hasMatchingChildren(session, searchText)) {
+                                const participants = dummyData.participants[session.id] || [];
+                                const filteredParticipants = participants.filter(p => matchesSearch(p));
+                                if (filteredParticipants.length > 0) {
+                                    const grandChildrenUl = document.createElement('ul');
+                                    grandChildrenUl.className = 'children expanded';
+                                    filteredParticipants.forEach(participant => {
+                                        grandChildrenUl.appendChild(createNodeElement(participant, 2));
+                                    });
+                                    sessionNode.querySelector('.tree-node').after(grandChildrenUl); // Append after the node div
+                                }
+                            }
+                        });
+                        eventNode.querySelector('.tree-node').after(childrenUl); // Append after the node div
+                    }
+                }
+            });
+            updateToggleIcons(); // Update icons after rendering
+        }
+
+        function renderFlatList(listElement, items, type) {
+            listElement.innerHTML = '';
+            const filteredItems = items.filter(item => matchesSearch(item));
+            if (filteredItems.length === 0 && searchText) {
+                listElement.innerHTML = `<p class="placeholder-text">No matching ${type} found.</p>`;
+                return;
+            } else if (filteredItems.length === 0) {
+                listElement.innerHTML = `<p class="placeholder-text">No ${type} available.</p>`;
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `flat-list-item ${selectedNode && selectedNode.id === item.id ? 'selected' : ''}`;
+                itemDiv.onclick = () => selectNode(item);
+                itemDiv.dataset.itemId = item.id;
+
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'icon';
+                if (item.type === 'car') iconSpan.textContent = '🚗';
+                else if (item.type === 'driver') iconSpan.textContent = '👤';
+                itemDiv.appendChild(iconSpan);
+
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = item.name;
+                itemDiv.appendChild(labelSpan);
+
+                listElement.appendChild(itemDiv);
+            });
+        }
+
+        function createNodeElement(item, level) {
+            const li = document.createElement('li');
+            const isExpandable = (item.type === 'event' && (dummyData.sessions[item.id] && dummyData.sessions[item.id].length > 0)) ||
+                                 (item.type === 'session' && (dummyData.participants[item.id] && dummyData.participants[item.id].length > 0));
+
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = `tree-node ${selectedNode && selectedNode.id === item.id ? 'selected' : ''}`;
+            nodeDiv.style.paddingLeft = `${level * 0.75}rem`;
+            nodeDiv.dataset.nodeId = item.id;
+
+            const toggleSpan = document.createElement('span');
+            toggleSpan.className = 'tree-toggle';
+            if (isExpandable) {
+                toggleSpan.textContent = expandedNodes.has(item.id) ? '▼' : '►';
+                toggleSpan.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleNode(item.id);
+                };
+            } else {
+                toggleSpan.textContent = '';
+                toggleSpan.style.width = '1rem';
+            }
+            nodeDiv.appendChild(toggleSpan);
+
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'tree-icon';
+            if (item.type === 'event') iconSpan.textContent = '📅';
+            else if (item.type === 'session') iconSpan.textContent = '⏱️';
+            else if (item.type === 'car') iconSpan.textContent = '🚗';
+            else if (item.type === 'driver') iconSpan.textContent = '👤';
+            nodeDiv.appendChild(iconSpan);
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'node-label';
+            labelSpan.textContent = item.name;
+            nodeDiv.appendChild(labelSpan);
+
+            nodeDiv.onclick = () => selectNode(item);
+            li.appendChild(nodeDiv);
+
+            return li;
+        }
+
+        function updateToggleIcons() {
+            document.querySelectorAll('.tree-toggle').forEach(toggle => {
+                const nodeId = toggle.parentNode.dataset.nodeId;
+                if (nodeId) {
+                    const isExpandable = (findNodeById(nodeId)?.type === 'event' && (dummyData.sessions[nodeId] && dummyData.sessions[nodeId].length > 0)) ||
+                                         (findNodeById(nodeId)?.type === 'session' && (dummyData.participants[nodeId] && dummyData.participants[nodeId].length > 0));
+                    if (isExpandable) {
+                        toggle.textContent = expandedNodes.has(nodeId) ? '▼' : '►';
+                    } else {
+                        toggle.textContent = '';
+                    }
+                }
+            });
+        }
+
+
+        function renderBreadcrumbs() {
+            breadcrumbsEl.innerHTML = '';
+            const path = [];
+            let current = selectedNode;
+
+            // Build path from selected node up to the root
+            while (current) {
+                path.unshift(current);
+                if (current.type === 'car' || current.type === 'driver') {
+                    // For car/driver from the tree, find parent session
+                    const session = findParentSession(current.id);
+                    if (session) {
+                        path.unshift(session); // Add session to path
+                        const event = findParentEvent(session.id);
+                        if (event) {
+                            path.unshift(event); // Add event to path
+                        }
+                    }
+                    current = null; // Stop after finding the top-level parent
+                } else if (current.type === 'session') {
+                    const event = findParentEvent(current.id);
+                    if (event) {
+                        path.unshift(event);
+                    }
+                    current = null;
+                } else if (current.type === 'event') {
+                    current = null;
+                } else { // For items from flat lists (allCars, allDrivers)
+                    if (current.type === 'car') {
+                        path.unshift({ id: 'cars-category-virtual', name: 'Cars', type: 'category' });
+                    } else if (current.type === 'driver') {
+                        path.unshift({ id: 'drivers-category-virtual', name: 'Drivers', type: 'category' });
+                    }
+                    current = null;
+                }
+            }
+
+            // Add Home link
+            const homeLink = document.createElement('span');
+            homeLink.className = 'breadcrumb-link';
+            homeLink.textContent = 'Home';
+            homeLink.onclick = resetUI;
+            breadcrumbsEl.appendChild(homeLink);
+
+            // Add path elements
+            path.forEach((item, index) => {
+                const separator = document.createElement('span');
+                separator.className = 'breadcrumb-separator';
+                separator.textContent = '>';
+                breadcrumbsEl.appendChild(separator);
+
+                const link = document.createElement('span');
+                link.className = 'breadcrumb-link';
+                link.textContent = item.name;
+                link.onclick = () => selectNode(item); // Allow clicking breadcrumbs to navigate
+                breadcrumbsEl.appendChild(link);
+            });
+        }
+
+        function findParentSession(participantId) {
+            for (const sessionId in dummyData.participants) {
+                if (dummyData.participants[sessionId].some(p => p.id === participantId)) {
+                    return dummyData.sessions[sessionId].find(s => s.id === sessionId);
+                }
+            }
+            return null;
+        }
+
+        function findParentEvent(sessionId) {
+            for (const eventId in dummyData.sessions) {
+                if (dummyData.sessions[eventId].some(s => s.id === sessionId)) {
+                    return dummyData.events.find(e => e.id === eventId);
+                }
+            }
+            return null;
+        }
+
+
+        function renderDetailContent() {
+            detailContentEl.innerHTML = '';
+            if (!selectedNode) {
+                detailContentEl.innerHTML = '<p class="placeholder-text">Select an item from the explorer to view its details.</p>';
+                return;
+            }
+
+            if (activeTab === 'view') {
+                const header = document.createElement('h3');
+                header.className = 'detail-header';
+                detailContentEl.appendChild(header);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'text-CCCCCC';
+                detailContentEl.appendChild(contentDiv);
+
+                if (selectedNode.type === 'event') {
+                    header.textContent = `Event: ${selectedNode.name}`;
+                    contentDiv.innerHTML = `<p>This is the overview for the event "${selectedNode.name}".</p>
+                                            <p>It contains ${dummyData.sessions[selectedNode.id]?.length || 0} sessions.</p>
+                                            <p class="mt-2 text-999999 text-sm">Click 'Edit' tab for CRUD functions or 'Analyze' for reports.</p>`;
+                } else if (selectedNode.type === 'session') {
+                    header.textContent = `Session: ${selectedNode.name}`;
+                    const event = findParentEvent(selectedNode.id);
+                    contentDiv.innerHTML = `<p>Details for session "${selectedNode.name}" within ${event?.name || 'an event'}.</p>
+                                            <p>This session has ${dummyData.participants[selectedNode.id]?.length || 0} participants (cars/drivers).</p>
+                                            <p class="mt-2 text-999999 text-sm">Click 'Edit' tab for CRUD functions or 'Analyze' for reports.</p>`;
+                } else if (selectedNode.type === 'car' || selectedNode.type === 'driver') {
+                    header.textContent = `Laps for ${selectedNode.name}`;
+                    const laps = dummyData.laps[selectedNode.id] || [];
+                    if (laps.length > 0) {
+                        const ul = document.createElement('ul');
+                        ul.className = 'list-disc list-inside';
+                        laps.forEach(lap => {
+                            const li = document.createElement('li');
+                            li.className = 'detail-list-item';
+                            li.textContent = `Lap ${lap.number}: ${lap.time}`;
+                            ul.appendChild(li);
+                        });
+                        contentDiv.appendChild(ul);
+                    } else {
+                        contentDiv.innerHTML = `<p>No lap data found for ${selectedNode.name}.</p>`;
+                    }
+                    contentDiv.innerHTML += `<p class="mt-2 text-999999 text-sm">Click 'Edit' tab for CRUD functions or 'Analyze' for reports.</p>`;
+                }
+            } else if (activeTab === 'edit') {
+                detailContentEl.innerHTML = `
+                    <h3 class="detail-header">Edit: ${selectedNode.name}</h3>
+                    <div class="text-CCCCCC">
+                        <p>This section would contain forms and controls for CRUD operations on the selected ${selectedNode.type}.</p>
+                        <textarea class="w-full h-32 p-2 mt-4 bg-gray-700 border border-gray-600 rounded-md text-gray-100 text-sm" placeholder="Simulate editing data here..."></textarea>
+                        <button class="action-button mt-2 px-4 py-2">Save Changes</button>
+                        <button class="action-button mt-2 ml-2 px-4 py-2">Delete ${selectedNode.type}</button>
+                    </div>
+                `;
+            } else if (activeTab === 'analyze') {
+                detailContentEl.innerHTML = `
+                    <h3 class="detail-header">Analyze: ${selectedNode.name}</h3>
+                    <div class="text-CCCCCC">
+                        <p>This section would display analytical reports, charts, and visualizations related to the selected ${selectedNode.type}.</p>
+                        <div class="mt-4 p-4 bg-gray-700 rounded-md text-center text-999999 border border-gray-600">
+                            [ Placeholder for Charts / Graphs ]
+                            <p class="text-sm mt-2">Data visualization for ${selectedNode.name}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // --- Selection & Toggle Logic ---
+
+        function toggleNode(nodeId) {
+            if (expandedNodes.has(nodeId)) {
+                expandedNodes.delete(nodeId);
+            } else {
+                expandedNodes.add(nodeId);
+            }
+            updateUI();
+        }
+
+        function toggleCategory(categoryName) {
+            if (expandedCategories.has(categoryName)) {
+                expandedCategories.delete(categoryName);
+            } else {
+                expandedCategories.add(categoryName);
+            }
+            updateUI();
+        }
+
+        function selectNode(node) {
+            selectedNode = node;
+            updateUI();
+        }
+
+        function setActiveTab(tabName) {
+            activeTab = tabName;
+            updateUI();
+        }
+
+        function resetUI() {
+            selectedNode = null;
+            expandedNodes.clear();
+            expandedCategories.clear();
+            expandedCategories.add('events'); // Events category expanded by default
+            activeTab = 'view';
+            searchText = '';
+            searchInput.value = '';
+            updateUI();
+        }
+
+        function expandAllTreeNodes() {
+            expandedNodes.clear();
+            dummyData.events.forEach(event => {
+                expandedNodes.add(event.id);
+                const sessions = dummyData.sessions[event.id] || [];
+                sessions.forEach(session => {
+                    expandedNodes.add(session.id);
+                });
+            });
+            updateUI();
+        }
+
+        function collapseAllTreeNodes() {
+            expandedNodes.clear();
+            updateUI();
+        }
+
+        function matchesSearch(item) {
+            if (!searchText) return true;
+            return item.name.toLowerCase().includes(searchText.toLowerCase());
+        }
+
+        function hasMatchingChildren(item, currentSearchText) {
+            if (!currentSearchText) return false;
+            const searchLower = currentSearchText.toLowerCase();
+
+            if (item.type === 'event') {
+                const sessions = dummyData.sessions[item.id] || [];
+                return sessions.some(session =>
+                    session.name.toLowerCase().includes(searchLower) ||
+                    hasMatchingChildren(session, currentSearchText)
+                );
+            } else if (item.type === 'session') {
+                const participants = dummyData.participants[item.id] || [];
+                return participants.some(p => p.name.toLowerCase().includes(searchLower));
+            }
+            return false;
+        }
+
+
+        function updateUI() {
+            renderQuickAccessItems(recentList, dummyData.recentItems);
+            renderQuickAccessItems(favoritesList, dummyData.favoriteItems);
+
+            // Render categories and their content
+            // Events Category
+            const eventsCategoryHeader = eventsCategorySection.querySelector('.category-header');
+            const eventsCategoryContent = eventsCategorySection.querySelector('.category-content');
+            eventsCategorySection.classList.toggle('expanded', expandedCategories.has('events'));
+            eventsCategoryHeader.querySelector('.toggle-icon').textContent = expandedCategories.has('events') ? '▼' : '►';
+            renderEventsTree(); // Renders into treeViewEl (inside events-content)
+
+            // Cars Category
+            const carsCategoryHeader = carsCategorySection.querySelector('.category-header');
+            const carsCategoryContent = carsCategorySection.querySelector('.category-content');
+            carsCategorySection.classList.toggle('expanded', expandedCategories.has('cars'));
+            carsCategoryHeader.querySelector('.toggle-icon').textContent = expandedCategories.has('cars') ? '▼' : '►';
+            renderFlatList(carsListEl, dummyData.allCars, 'cars');
+
+            // Drivers Category
+            const driversCategoryHeader = driversCategorySection.querySelector('.category-header');
+            const driversCategoryContent = driversCategorySection.querySelector('.category-content');
+            driversCategorySection.classList.toggle('expanded', expandedCategories.has('drivers'));
+            driversCategoryHeader.querySelector('.toggle-icon').textContent = expandedCategories.has('drivers') ? '▼' : '►';
+            renderFlatList(driversListEl, dummyData.allDrivers, 'drivers');
+
+
+            renderBreadcrumbs();
+            renderDetailContent();
+
+            // Update tab button active states
+            viewTabBtn.classList.toggle('active', activeTab === 'view');
+            editTabBtn.classList.toggle('active', activeTab === 'edit');
+            analyzeTabBtn.classList.toggle('active', activeTab === 'analyze');
+
+            // Update selected state for quick access items
+            document.querySelectorAll('.quick-access-item').forEach(itemDiv => {
+                const itemId = itemDiv.dataset.itemId;
+                itemDiv.classList.toggle('selected', selectedNode && selectedNode.id === itemId);
+            });
+
+            // Update selected state for flat list items
+            document.querySelectorAll('.flat-list-item').forEach(itemDiv => {
+                const itemId = itemDiv.dataset.itemId;
+                itemDiv.classList.toggle('selected', selectedNode && selectedNode.id === itemId);
+            });
+        }
+
+        // --- Event Listeners ---
+        searchInput.addEventListener('input', (e) => {
+            searchText = e.target.value;
+            // Auto-expand categories if search matches their content
+            expandedCategories.clear();
+            if (searchText) {
+                if (dummyData.events.some(event => matchesSearch(event) || hasMatchingChildren(event, searchText))) {
+                    expandedCategories.add('events');
+                }
+                if (dummyData.allCars.some(car => matchesSearch(car))) {
+                    expandedCategories.add('cars');
+                }
+                if (dummyData.allDrivers.some(driver => matchesSearch(driver))) {
+                    expandedCategories.add('drivers');
+                }
+            } else {
+                // If search is cleared, revert to default expanded categories
+                expandedCategories.add('events');
+            }
+            // Also manage tree nodes expansion for events category during search
+            if (searchText) {
+                expandedNodes.clear();
+                dummyData.events.forEach(event => {
+                    if (matchesSearch(event) || hasMatchingChildren(event, searchText)) {
+                        expandedNodes.add(event.id);
+                        const sessions = dummyData.sessions[event.id] || [];
+                        sessions.forEach(session => {
+                            if (matchesSearch(session) || hasMatchingChildren(session, searchText)) {
+                                expandedNodes.add(session.id);
+                            }
+                        });
+                    }
+                });
+            } else {
+                expandedNodes.clear();
+            }
+
+            updateUI();
+        });
+
+        expandAllTreeBtn.onclick = expandAllTreeNodes;
+        collapseAllTreeBtn.onclick = collapseAllTreeNodes;
+        viewTabBtn.onclick = () => setActiveTab('view');
+        editTabBtn.onclick = () => setActiveTab('edit');
+        analyzeTabBtn.onclick = () => setActiveTab('analyze');
+
+        // Hover functionality for Quick Access sections
+        document.querySelectorAll('.quick-access-section').forEach(section => {
+            const listElement = section.querySelector('.quick-access-list');
+            section.addEventListener('mouseenter', () => {
+                section.classList.add('expanded');
+            });
+            section.addEventListener('mouseleave', () => {
+                section.classList.remove('expanded');
+            });
+        });
+
+        // Click functionality for Category Headers
+        document.querySelectorAll('.category-header').forEach(header => {
+            header.onclick = (e) => {
+                const category = header.dataset.category;
+                if (category) {
+                    toggleCategory(category);
+                }
+            };
+        });
+
+
+        // Initial render
+        updateUI();
+    </script>
+</body>
+</html>
